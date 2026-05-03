@@ -14,9 +14,9 @@ function logout() {
 <template>
   <template v-if="auth.isAuthenticated">
     <nav class="app-nav">
-      <router-link to="/" class="brand">📊 投資資產管理系統</router-link>
+      <router-link to="/" class="brand">📊 金融資產紀錄系統</router-link>
       <router-link to="/all-functions">功能總覽</router-link>
-      <router-link to="/portfolios">投資組合</router-link>
+      <router-link to="/portfolios">投資紀錄</router-link>
       <template v-if="auth.isAdmin">
         <router-link to="/admin/users">帳號管理</router-link>
         <router-link to="/admin/menu">選單管理</router-link>

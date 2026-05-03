@@ -210,10 +210,21 @@ function fmt(n: number | string) {
 function fmtPrice(n: number | string | null) {
   if (n == null) return '—'
   const v = Number(n)
-  return v % 1 === 0 ? v.toLocaleString() : v.toFixed(2)
+  return v % 1 === 0 ? v.toLocaleString('zh-TW') : v.toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 function fmtPct(n: number | string) {
   return (Number(n) * 100).toFixed(4) + '%'
+}
+function fmtInput(v: number | null | undefined): string {
+  if (v == null) return ''
+  const n = Number(v)
+  return isNaN(n) ? '' : n.toLocaleString('zh-TW', { maximumFractionDigits: 4 })
+}
+function parseInput(e: Event): number | null {
+  const s = (e.target as HTMLInputElement).value.replace(/,/g, '').trim()
+  if (!s) return null
+  const n = parseFloat(s)
+  return isNaN(n) ? null : n
 }
 function badgeClass(type: string) {
   if (type === '股票-個股') return 'badge badge-stock'
@@ -236,7 +247,7 @@ onMounted(async () => {
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div>
-        <router-link to="/" class="text-muted" style="font-size:13px">← 返回列表</router-link>
+        <router-link to="/portfolios?tab=assets" class="text-muted" style="font-size:13px">← 返回列表</router-link>
         <h1 style="font-size:20px;font-weight:700;margin-top:4px">{{ store.current.name }}</h1>
       </div>
       <button class="btn btn-ghost" @click="showImport=true">⬆ 批次匯入</button>
@@ -328,13 +339,13 @@ onMounted(async () => {
               <tr v-else class="edit-row" @keydown="onEditKeydown">
                 <td><input class="cell-input" v-model="editRow.sec_id" /></td>
                 <td><input class="cell-input" v-model="editRow.sec_name" /></td>
-                <td><input class="cell-input num" type="number" v-model.number="editRow.curr_price" step="0.01" /></td>
+                <td><input class="cell-input num" type="text" :value="fmtInput(editRow.curr_price)" @change="editRow.curr_price = parseInput($event) ?? 0" /></td>
                 <td>
                   <select class="cell-input" v-model="editRow.asset_type">
                     <option v-for="t in store.assetTypes" :key="t.asset_type" :value="t.asset_type">{{ t.asset_type }}</option>
                   </select>
                 </td>
-                <td><input class="cell-input num" type="number" v-model.number="editRow.shares" min="0" /></td>
+                <td><input class="cell-input num" type="text" :value="fmtInput(editRow.shares)" @change="editRow.shares = parseInput($event) ?? 0" /></td>
                 <td class="num fw-bold">{{ fmt(editCalc.mv1) }}</td>
                 <td class="num text-muted">{{ fmt(editCalc.fee) }}</td>
                 <td class="num text-muted">{{ fmt(editCalc.tax) }}</td>
@@ -361,8 +372,8 @@ onMounted(async () => {
                 <div v-if="lookupMsg" style="font-size:10px;color:#d97706;margin-top:2px">{{ lookupMsg }}</div>
               </td>
               <td class="num">
-                <input class="cell-input num" type="number" v-model.number="newRow.curr_price"
-                  placeholder="自動帶出" step="0.01" :readonly="lookingUp" />
+                <input class="cell-input num" type="text" :value="fmtInput(newRow.curr_price)"
+                  @change="newRow.curr_price = parseInput($event)" placeholder="自動帶出" :readonly="lookingUp" />
               </td>
               <td>
                 <select class="cell-input" v-model="newRow.asset_type" @change="onNewAssetTypeChange">
@@ -370,8 +381,8 @@ onMounted(async () => {
                 </select>
               </td>
               <td>
-                <input class="cell-input num" type="number" v-model.number="newRow.shares"
-                  min="0" placeholder="股數" />
+                <input class="cell-input num" type="text" :value="fmtInput(newRow.shares || null)"
+                  @change="newRow.shares = parseInput($event) ?? 0" placeholder="股數" />
               </td>
               <td class="num fw-bold">{{ newRow.shares > 0 && newRow.curr_price ? fmt(newCalc.mv1) : '—' }}</td>
               <td class="num text-muted">{{ newRow.shares > 0 && newRow.curr_price ? fmt(newCalc.fee) : '—' }}</td>

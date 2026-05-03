@@ -79,7 +79,7 @@ async function login() {
         </button>
       </form>
 
-      <div class="login-hint">預設帳號：admin　／　密碼：admin1234</div>
+      <div class="login-hint">管理員：admin</div>
     </div>
   </div>
 </template>

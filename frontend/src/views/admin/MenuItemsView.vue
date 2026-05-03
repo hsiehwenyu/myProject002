@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { api } from '@/api'
 import type { MenuItemRead } from '@/api'
+import { APP_FUNCTIONS } from '@/constants/appFunctions'
 
 const items = ref<MenuItemRead[]>([])
 const loading = ref(true)
@@ -11,6 +12,22 @@ const showCreate = ref(false)
 const form = ref({ label: '', url: '', icon: '🔗', sort_order: 0, is_active: true, min_role: 'user' })
 const saving = ref(false)
 const formError = ref('')
+const selectedFuncKey = ref('')   // tracks which function card is highlighted
+
+function selectFunc(icon: string, label: string, path: string, adminOnly?: boolean) {
+  form.value.icon  = icon
+  form.value.label = label
+  form.value.url   = path
+  if (adminOnly) form.value.min_role = 'admin'
+  selectedFuncKey.value = path + label
+}
+
+function openCreate() {
+  form.value = { label: '', url: '', icon: '🔗', sort_order: 0, is_active: true, min_role: 'user' }
+  selectedFuncKey.value = ''
+  formError.value = ''
+  showCreate.value = true
+}
 
 const editTarget = ref<MenuItemRead | null>(null)
 const editForm = ref({ label: '', url: '', icon: '', sort_order: 0, is_active: true, min_role: 'user' })
@@ -80,7 +97,7 @@ async function deleteItem(item: MenuItemRead) {
   <div>
     <div class="page-toolbar">
       <h2 class="page-title">選單管理</h2>
-      <button class="btn btn-primary" @click="showCreate = true">＋ 新增連結</button>
+      <button class="btn btn-primary" @click="openCreate">＋ 新增連結</button>
     </div>
 
     <div v-if="loading" class="text-muted">載入中…</div>
@@ -118,8 +135,43 @@ async function deleteItem(item: MenuItemRead) {
 
     <!-- Create modal -->
     <div v-if="showCreate" class="modal-overlay" @click.self="showCreate = false; formError = ''">
-      <div class="modal">
+      <div class="modal modal-wide">
         <div class="modal-title">新增作業連結</div>
+
+        <!-- Function picker -->
+        <div class="picker-section">
+          <div class="picker-section-label">從作業功能挑選</div>
+          <div v-for="group in APP_FUNCTIONS" :key="group.group" style="margin-bottom:10px">
+            <div class="picker-group-label">{{ group.group }}</div>
+            <div class="picker-grid">
+              <button
+                v-for="item in group.items"
+                :key="item.path + item.label"
+                type="button"
+                class="picker-func-card"
+                :class="{ 'picker-func-card--selected': selectedFuncKey === item.path + item.label }"
+                @click="selectFunc(item.icon, item.label, item.path, item.adminOnly)"
+              >
+                <span class="picker-func-icon">{{ item.icon }}</span>
+                <span class="picker-func-body">
+                  <span class="picker-func-label">
+                    {{ item.label }}
+                    <span v-if="item.adminOnly" class="badge-admin">Admin</span>
+                    <span v-if="item.external"  class="badge-ext">外部</span>
+                  </span>
+                  <span class="picker-func-desc">{{ item.desc }}</span>
+                </span>
+                <span v-if="selectedFuncKey === item.path + item.label" class="picker-check">✓</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="picker-divider">
+          <span>或手動填寫</span>
+        </div>
+
+        <!-- Form fields -->
         <div class="form-row">
           <div class="form-group" style="flex:0 0 70px">
             <label>圖示</label>
@@ -295,4 +347,67 @@ async function deleteItem(item: MenuItemRead) {
 
 .status-dot.active { color: #16a34a; }
 .status-dot.inactive { color: #9ca3af; }
+
+/* ── Function picker ── */
+.modal-wide { min-width: 560px; max-width: 660px; max-height: 90vh; overflow-y: auto; }
+
+.picker-section { margin-bottom: 4px; }
+.picker-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 8px;
+}
+.picker-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.picker-func-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .12s, background .12s;
+  width: 100%;
+}
+.picker-func-card:hover { border-color: #1a5276; background: #f0f7ff; }
+.picker-func-card--selected { border-color: #1a5276; background: #eff6ff; }
+.picker-func-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+.picker-func-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.picker-func-label { font-size: 13px; font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 5px; }
+.picker-func-desc  { font-size: 11px; color: #64748b; }
+.picker-check { font-size: 14px; color: #1a5276; font-weight: 700; flex-shrink: 0; }
+
+.picker-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 12px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+.picker-divider::before,
+.picker-divider::after { content: ''; flex: 1; border-top: 1px solid #e2e8f0; }
+
+.badge-admin { font-size: 10px; font-weight: 700; background: #ede9fe; color: #6d28d9; padding: 1px 5px; border-radius: 3px; }
+.badge-ext   { font-size: 10px; font-weight: 700; background: #dcfce7; color: #16a34a; padding: 1px 5px; border-radius: 3px; }
 </style>
